@@ -1,0 +1,3 @@
+include ':app'
+include 'commonLib'
+project(':commonLib').projectDir =file('../TestClock/commonlib')
