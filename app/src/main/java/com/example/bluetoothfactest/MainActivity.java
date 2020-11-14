@@ -6,12 +6,21 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
+import android.Manifest;
 import android.content.Intent;
 import android.os.Message;
+import android.util.Log;
 
 import com.google.android.material.tabs.TabLayout;
 import com.rk.commonlib.NoBleBaseFragmentActivity;
 import com.rk.commonlib.util.LogUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import me.weyye.hipermission.HiPermission;
+import me.weyye.hipermission.PermissionCallback;
+import me.weyye.hipermission.PermissionItem;
 
 public class MainActivity extends NoBleBaseFragmentActivity {
 
@@ -109,5 +118,40 @@ public class MainActivity extends NoBleBaseFragmentActivity {
     @Override
     protected void handleUiMessage(Message msg) {
 
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        requestPermissions();
+    }
+
+    private void requestPermissions() {
+        List<PermissionItem> permissionItems = new ArrayList<PermissionItem>();
+        permissionItems.add(new PermissionItem(Manifest.permission.WRITE_EXTERNAL_STORAGE, "Storage", R.drawable.permission_ic_storage));
+        HiPermission.create(this)
+                .permissions(permissionItems)
+                .checkMutiPermission(new PermissionCallback() {
+                    @Override
+                    public void onClose() {
+                        finish();
+                    }
+
+                    @Override
+                    public void onFinish() {
+                        //UpdateUtils.checkUpdate(MainActivity.this, UPDATE_URL);
+                        LogUtils.i("requestPermissions, finish");
+                    }
+
+                    @Override
+                    public void onDeny(String permission, int position) {
+                        LogUtils.i("requestPermissions, onDeny");
+                    }
+
+                    @Override
+                    public void onGuarantee(String permission, int position) {
+                        LogUtils.i("requestPermissions, onGuarantee");
+                    }
+                });
     }
 }
