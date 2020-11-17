@@ -7,8 +7,6 @@
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tab"
-        android:layout_marginLeft="14dp"
-        android:layout_marginRight="14dp"
         app:tabMode="scrollable"
         style="@style/Tablayoutstyle"
         app:tabTextAppearance="@style/tabLayout_style"
