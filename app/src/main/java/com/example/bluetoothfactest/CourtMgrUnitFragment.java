@@ -30,6 +30,9 @@ import com.rk.commonlib.bluetooth.CourtUnitBluetoothInstance;
 import com.rk.commonlib.files.FileSaveHelp;
 import com.rk.commonlib.util.LogUtils;
 import com.rk.commonlib.widge.RappleButtonWidge;
+import com.rk.commonmodule.protocol.protocol3761.Protocol3761;
+import com.rk.commonmodule.protocol.protocol3761.Protocol3761Helper;
+import com.rk.commonmodule.utils.DataConvertUtils;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -64,9 +67,10 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
     private CourtUnitBluetoothInstance.ILeScanVallback mLeScanListener = new CourtUnitBluetoothInstance.ILeScanVallback() {
         @Override
         public void onLeScan(final BluetoothDevice device, final int rssi, byte[] scanRecord) {
+            LogUtils.i("onLeScan, device: " + device.getName() + ", device mac: " + device.getAddress());
             if (device != null && !TextUtils.isEmpty(device.getName()) && device.getName().startsWith("TMU")
                     && !containDevice(device) && device.getName().startsWith(mCurrentDeviceName)) {
-                LogUtils.i("onLeScan, device: " + device.getName() + ", device mac: " + device.getAddress());
+                //LogUtils.i("onLeScan, device: " + device.getName() + ", device mac: " + device.getAddress());
                 mBleList.add(new BluetoothDeviceHolder(device, rssi));
                 mUIHandler.removeMessages(UI_UPDATE_LIST_MSG);
                 mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_UPDATE_LIST_MSG));
@@ -182,7 +186,10 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
         CourtUnitBluetoothInstance.getInstance(sParentActivity).close();
         if (IS_BLE) {
             CourtUnitBluetoothInstance.getInstance(sParentActivity).setLeScanListener(mLeScanListener);
-            CourtUnitBluetoothInstance.getInstance(sParentActivity).scanLeDevice(true, sParentActivity);
+            boolean isOK = CourtUnitBluetoothInstance.getInstance(sParentActivity).scanLeDevice(true, sParentActivity);
+            if (!isOK) {
+                return;
+            }
         } else {
             boolean isOK = CourtUnitBluetoothInstance.getInstance(sParentActivity).startScan(sParentActivity);
             if (!isOK) {
@@ -268,16 +275,36 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
             case NON_UI_SEND_CONFIRM_MSG:
                 byte[] recv = CourtUnitBluetoothInstance.getInstance(sParentActivity).sendConfirm();
                 if (recv == null) {
-
+                    String content = "检测设备[" + mCurrentDeviceName + "]失败";
+                    recordLog(content);
+                    mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_DISCONNECT_BLE_MSG));
+                    mUIHandler.sendMessage(mUIHandler.obtainMessage(SHOW_TOAST_MSG, "检测失败"));
                 } else {
                     recv = CourtUnitBluetoothInstance.getInstance(sParentActivity).sendEncryptInfo(recv);
                     if (recv == null) {
-
+                        String content = "检测设备[" + mCurrentDeviceName + "]失败";
+                        recordLog(content);
+                        mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_DISCONNECT_BLE_MSG));
+                        mUIHandler.sendMessage(mUIHandler.obtainMessage(SHOW_TOAST_MSG, "检测失败"));
                     } else {
                         //CourtUnitBluetoothInstance.getInstance(sParentActivity).disconnect();
                         String content = "成功连接设备[" + mCurrentDeviceName + "]";
                         recordLog(content);
+                        byte[] sendFrame = Protocol3761Helper.makeGetTerminalVersionInfoFrame();
+                        LogUtils.i("send frame: " + DataConvertUtils.convertByteArrayToString(sendFrame, false));
+                        content = "发送读取版本信息报文>>>>>>>>：" + DataConvertUtils.convertByteArrayToString(sendFrame, false);
+                        recordLog(content);
+                        if (sendFrame != null) {
+                            recv = CourtUnitBluetoothInstance.getInstance(sParentActivity).sendAndReceiveSync(sendFrame);
+                            LogUtils.i("recv frame: " + DataConvertUtils.convertByteArrayToString(recv, false));
+                            content = "接收版本信息回复报文<<<<<<<<：" + DataConvertUtils.convertByteArrayToString(recv, false);
+                            recordLog(content);
+
+                            content = "检测设备[" + mCurrentDeviceName + "]成功";
+                            recordLog(content);
+                        }
                         mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_DISCONNECT_BLE_MSG));
+                        mUIHandler.sendMessage(mUIHandler.obtainMessage(SHOW_TOAST_MSG, "检测成功"));
                     }
                 }
                 break;
