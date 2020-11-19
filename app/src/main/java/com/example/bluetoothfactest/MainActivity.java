@@ -129,7 +129,7 @@ public class MainActivity extends NoBleBaseFragmentActivity {
     private void requestPermissions() {
         List<PermissionItem> permissionItems = new ArrayList<PermissionItem>();
         permissionItems.add(new PermissionItem(Manifest.permission.WRITE_EXTERNAL_STORAGE, "Storage", R.drawable.permission_ic_storage));
-        permissionItems.add(new PermissionItem(Manifest.permission.ACCESS_COARSE_LOCATION, "Location", R.drawable.permission_ic_location));
+        //permissionItems.add(new PermissionItem(Manifest.permission.ACCESS_COARSE_LOCATION, "Location", R.drawable.permission_ic_location));
         HiPermission.create(this)
                 .permissions(permissionItems)
                 .checkMutiPermission(new PermissionCallback() {

@@ -128,6 +128,9 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
                     CourtUnitBluetoothInstance.getInstance(sParentActivity).connect(mCurrentDeviceAddr);
                 } else if (status != 0) {
                     mUIHandler.sendMessage(mUIHandler.obtainMessage(SHOW_TOAST_MSG, "蓝牙设备忙，请重测试！"));
+                    String content = "连接设备[" + mCurrentDeviceName + "]忙，请重连";
+                    mNonUIHandler.removeMessages(NON_UI_RECORD_LOG_MSG);
+                    mNonUIHandler.sendMessage(mNonUIHandler.obtainMessage(NON_UI_RECORD_LOG_MSG, content));
                 }
             } else if (CourtUnitBluetoothInstance.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
                 CourtUnitBluetoothInstance.getInstance(sParentActivity).getServicesAndCharacteristics();
