@@ -2,19 +2,23 @@ package com.example.bluetoothfactest;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.CalendarContract;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -46,6 +50,7 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
     private RecyclerView mRecyclerView;
     private BleDeviceItemAdapter mBleDeviceItemAdapter;
     private ArrayList<BluetoothDeviceHolder> mBleList = new ArrayList<>();
+    private AlertDialog mSaveDialog;
 
     private String mCurrentDeviceName = null;
     private String mCurrentDeviceAddr = null;
@@ -63,6 +68,7 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
     private static final int UI_UPDATE_LIST_MSG = SHOW_TOAST_MSG + 1;
     private static final int UI_DISCONNECT_BLE_MSG = SHOW_TOAST_MSG + 2;
     private static final int UI_STOP_BLE_SCAN_MSG = SHOW_TOAST_MSG + 3;
+    private static final int UI_SHOW_TEST_RESULE_MSG = SHOW_TOAST_MSG + 4;
 
     private CourtUnitBluetoothInstance.ILeScanVallback mLeScanListener = new CourtUnitBluetoothInstance.ILeScanVallback() {
         @Override
@@ -187,6 +193,9 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
             return;
         }
         CourtUnitBluetoothInstance.getInstance(sParentActivity).close();
+        mBleList.clear();
+        mUIHandler.removeMessages(UI_UPDATE_LIST_MSG);
+        mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_UPDATE_LIST_MSG));
         if (IS_BLE) {
             CourtUnitBluetoothInstance.getInstance(sParentActivity).setLeScanListener(mLeScanListener);
             boolean isOK = CourtUnitBluetoothInstance.getInstance(sParentActivity).scanLeDevice(true, sParentActivity);
@@ -201,7 +210,6 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
         }
         mScanning = true;
         mScanBtn.start();
-        mBleList.clear();
 
         mUIHandler.sendMessageDelayed(mUIHandler.obtainMessage(UI_STOP_BLE_SCAN_MSG), 20000);
     }
@@ -264,8 +272,12 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
                     StringBuilder sb = new StringBuilder();
                     sb.append("[").append(mCurrentDeviceName).append("]:").append("未发现设备");
                     mNonUIHandler.sendMessage(mNonUIHandler.obtainMessage(NON_UI_RECORD_LOG_MSG, sb.toString()));
-                    mUIHandler.sendMessage(mUIHandler.obtainMessage(SHOW_TOAST_MSG, "未发现设备，检测失败"));
+                    mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_SHOW_TEST_RESULE_MSG, "FAIL 未发现设备"));
                 }
+                break;
+            case UI_SHOW_TEST_RESULE_MSG:
+                String result = (String) msg.obj;
+                showTestDialog(result);
                 break;
         }
 
@@ -281,14 +293,14 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
                     String content = "检测设备[" + mCurrentDeviceName + "]失败";
                     recordLog(content);
                     mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_DISCONNECT_BLE_MSG));
-                    mUIHandler.sendMessage(mUIHandler.obtainMessage(SHOW_TOAST_MSG, "检测失败"));
+                    mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_SHOW_TEST_RESULE_MSG, "FAIL 连接失败！"));
                 } else {
                     recv = CourtUnitBluetoothInstance.getInstance(sParentActivity).sendEncryptInfo(recv);
                     if (recv == null) {
                         String content = "检测设备[" + mCurrentDeviceName + "]失败";
                         recordLog(content);
                         mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_DISCONNECT_BLE_MSG));
-                        mUIHandler.sendMessage(mUIHandler.obtainMessage(SHOW_TOAST_MSG, "检测失败"));
+                        mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_SHOW_TEST_RESULE_MSG, "FAIL 连接失败"));
                     } else {
                         //CourtUnitBluetoothInstance.getInstance(sParentActivity).disconnect();
                         String content = "成功连接设备[" + mCurrentDeviceName + "]";
@@ -307,7 +319,7 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
                             recordLog(content);
                         }
                         mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_DISCONNECT_BLE_MSG));
-                        mUIHandler.sendMessage(mUIHandler.obtainMessage(SHOW_TOAST_MSG, "检测成功"));
+                        mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_SHOW_TEST_RESULE_MSG, "PASS 检测成功"));
                     }
                 }
                 break;
@@ -447,6 +459,45 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
                 }
             });
         }
+
+    }
+
+    private void showTestDialog(final String data) {
+        LogUtils.i("showTestDialog");
+        if (mSaveDialog != null) {
+            mSaveDialog.cancel();
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(sParentActivity);
+        View view = getLayoutInflater().inflate(R.layout.test_result_dialog_layout, null);
+        builder.setCancelable(false);
+        builder.setView(view);
+        mSaveDialog = builder.create();
+        final TextView scanResult = view.findViewById(R.id.scan_result);
+        if (data.startsWith("FAIL")) {
+            scanResult.setTextColor(Color.RED);
+            scanResult.setText(data);
+        } else {
+            scanResult.setTextColor(Color.GREEN);
+            scanResult.setText(data);
+        }
+        Button ignoreBtn = view.findViewById(R.id.ignore_bt);
+        Button saveBtn = view.findViewById(R.id.save_bt);
+
+        ignoreBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mSaveDialog.dismiss();
+            }
+        });
+        saveBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mSaveDialog.dismiss();
+                //saveData(data, note.getText().toString());
+            }
+        });
+
+        mSaveDialog.show();
 
     }
 
