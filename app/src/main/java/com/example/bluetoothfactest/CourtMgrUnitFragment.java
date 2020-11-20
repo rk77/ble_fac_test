@@ -309,17 +309,19 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
                         LogUtils.i("send frame: " + DataConvertUtils.convertByteArrayToString(sendFrame, false));
                         content = "发送读取版本信息报文>>>>>>>>：" + DataConvertUtils.convertByteArrayToString(sendFrame, false);
                         recordLog(content);
+                        String version = null;
                         if (sendFrame != null) {
                             recv = CourtUnitBluetoothInstance.getInstance(sParentActivity).sendAndReceiveSync(sendFrame);
                             LogUtils.i("recv frame: " + DataConvertUtils.convertByteArrayToString(recv, false));
                             content = "接收版本信息回复报文<<<<<<<<：" + DataConvertUtils.convertByteArrayToString(recv, false);
                             recordLog(content);
+                            version = Protocol3761Helper.parseVersionFrame(recv);
 
                             content = "检测设备[" + mCurrentDeviceName + "]成功";
                             recordLog(content);
                         }
                         mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_DISCONNECT_BLE_MSG));
-                        mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_SHOW_TEST_RESULE_MSG, "PASS 检测成功"));
+                        mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_SHOW_TEST_RESULE_MSG, "PASS 检测成功, 版本：" + version));
                     }
                 }
                 break;
