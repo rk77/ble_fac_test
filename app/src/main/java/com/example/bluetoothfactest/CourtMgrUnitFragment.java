@@ -285,6 +285,16 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
 
     @Override
     protected void handleNonUIMessage(Message msg) {
+        LogUtils.i("msg what: " + msg.what);
+        if(msg.what == NON_UI_RECORD_LOG_MSG) {
+            String content = (String) msg.obj;
+            if (TextUtils.isEmpty(content) || TextUtils.isEmpty(mCurrentDeviceName)) {
+                return;
+            }
+            recordLog(content);
+            return;
+        }
+
         ((NoBleBaseFragmentActivity)sParentActivity).setLoadingVisible(true);
         switch (msg.what) {
             case NON_UI_SEND_CONFIRM_MSG:
@@ -324,13 +334,6 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
                         mUIHandler.sendMessage(mUIHandler.obtainMessage(UI_SHOW_TEST_RESULE_MSG, "PASS 检测成功, 版本：" + version));
                     }
                 }
-                break;
-            case NON_UI_RECORD_LOG_MSG:
-                String content = (String) msg.obj;
-                if (TextUtils.isEmpty(content) || TextUtils.isEmpty(mCurrentDeviceName)) {
-                    return;
-                }
-                recordLog(content);
                 break;
             case NON_UI_DELETE_FILE_MSG:
                 String fileName = (String) msg.obj;
@@ -438,7 +441,7 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
                     //final Intent intent = new Intent(BluetoothDeviceActivity.this, DeviceMenuActivity.class);
                     //intent.putExtra(BluetoothInstance.EXTRAS_DEVICE_NAME, device.getName());
                     //intent.putExtra(BluetoothInstance.EXTRAS_DEVICE_ADDRESS, device.getAddress());
-                    ((NoBleBaseFragmentActivity)sParentActivity).setLoadingVisible(true);
+                    //((NoBleBaseFragmentActivity)sParentActivity).setLoadingVisible(true);
                     //CourtUnitBluetoothInstance.getInstance(sParentActivity).close();
                     if (mScanning) {
                         mScanning = false;
@@ -458,6 +461,7 @@ public class CourtMgrUnitFragment extends CommonBaseFragment {
                     CourtUnitBluetoothInstance.getInstance(sParentActivity).connect(device.getAddress());
                     //startActivity(intent);
                     LogUtils.i("onClick, device: " + device.getName() + ", address: " + device.getAddress());
+                    ((NoBleBaseFragmentActivity)sParentActivity).setLoadingVisible(true);
                 }
             });
         }
